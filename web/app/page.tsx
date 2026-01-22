@@ -51,9 +51,9 @@ const SEVERITY_BADGES: Record<string, string> = {
 
 function MetricCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm backdrop-blur">
-      <div className="text-xs text-slate-400">{label}</div>
-      <div className="mt-2 text-3xl font-semibold tracking-tight">{value}</div>
+    <div className="rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur-md hover:bg-white/15 transition-colors">
+      <div className="text-xs font-medium text-slate-400">{label}</div>
+      <div className="mt-3 text-3xl font-bold tracking-tight">{value}</div>
     </div>
   );
 }
@@ -141,41 +141,39 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-slate-100">
-      <div className="pointer-events-none fixed inset-0">
-        <div className="absolute left-1/2 top-[-120px] h-[520px] w-[980px] -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl" />
-        <div className="absolute left-1/2 top-[260px] h-[480px] w-[900px] -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+      {/* Ambient gradient orbs */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl" />
+        <div className="absolute top-1/2 -left-40 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
       </div>
-      <div className="mx-auto max-w-7.5xl px-6 py-10">
-        {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">PoisonLens</h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-300">
-              Scan JSONL fine-tuning datasets for poisoning indicators, low-quality
-              samples, and semantic outliers. Export a cleaned dataset using
-              deterministic remediation rules.
-            </p>
-          </div>
 
+      <div className="relative mx-auto max-w-6xl px-6 py-12">
+        {/* Header */}
+        <div className="mb-12">
+          <h1 className="text-4xl font-bold tracking-tight">PoisonLens</h1>
+          <p className="mt-3 max-w-2xl text-sm text-slate-300">
+            Scan JSONL datasets for quality issues, anomalies, and security risks.
+            Clean and export your data with intelligent remediation rules.
+          </p>
         </div>
 
-        <div className="mt-8 space-y-6">
-          {/* Upload + Actions */}
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm backdrop-blur">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-col gap-2">
-                <div className="text-sm font-medium text-slate-200">Dataset</div>
+        {/* Main content */}
+        <div className="space-y-6">
+          {/* Upload section */}
+          <div className="rounded-3xl border border-white/20 bg-white/10 p-8 backdrop-blur-md">
+            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+              <div className="flex-1">
+                <label className="block text-sm font-semibold text-white mb-3">Dataset</label>
                 <input
                   type="file"
                   accept=".jsonl,.txt,.json"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                  className="block w-full text-sm text-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-slate-100 hover:file:bg-white/15"
+                  className="block w-full text-sm text-slate-200 file:mr-4 file:rounded-xl file:border-0 file:bg-white/20 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-white/30 transition-colors file:cursor-pointer"
                 />
-                <div className="text-xs text-slate-400">
-                  Upload a JSONL file (one JSON object per line). Run a scan to see
-                  flagged rows and export a cleaned dataset.
-                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  Upload a JSONL file to begin scanning
+                </p>
               </div>
 
               <div className="flex items-center gap-3">
@@ -183,26 +181,26 @@ export default function Home() {
                   onClick={onScan}
                   disabled={!file || loading}
                   className={cx(
-                    "rounded-xl px-5 py-2.5 text-sm font-medium shadow-sm transition",
+                    "rounded-xl px-6 py-2.5 text-sm font-semibold transition-all",
                     !file || loading
-                      ? "bg-white/10 text-slate-400"
-                      : "bg-white text-slate-900 hover:bg-slate-200 shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_12px_30px_rgba(0,0,0,0.35)]"
+                      ? "bg-white/10 text-slate-400 cursor-not-allowed"
+                      : "bg-white/20 text-white hover:bg-white/30 border border-white/20"
                   )}
                 >
-                  {loading ? "Scanning…" : "Run scan"}
+                  {loading ? "Scanning…" : "Scan"}
                 </button>
 
                 <button
                   onClick={downloadCleaned}
                   disabled={!result}
                   className={cx(
-                    "rounded-xl border px-5 py-2.5 text-sm font-medium transition",
+                    "rounded-xl px-6 py-2.5 text-sm font-semibold transition-all border",
                     !result
-                      ? "border-white/10 bg-white/5 text-slate-400"
-                      : "border-white/15 bg-slate-950/30 text-slate-100 hover:bg-slate-950/60"
+                      ? "border-white/10 bg-white/5 text-slate-400 cursor-not-allowed"
+                      : "border-white/20 bg-white/10 text-white hover:bg-white/20"
                   )}
                 >
-                  Download cleaned.jsonl
+                  Download
                 </button>
               </div>
             </div>
@@ -210,14 +208,8 @@ export default function Home() {
 
           {/* Empty state */}
           {!result && (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center shadow-sm backdrop-blur">
-              <div className="text-sm font-medium text-slate-200">
-                Upload a dataset to begin
-              </div>
-              <div className="mt-2 text-sm text-slate-400">
-                Run a scan to populate metrics, remediation toggles, and flagged
-                samples.
-              </div>
+            <div className="rounded-3xl border border-white/20 bg-white/10 p-12 text-center backdrop-blur-md">
+              <p className="text-slate-300">Upload and scan a dataset to begin</p>
             </div>
           )}
 
@@ -227,13 +219,12 @@ export default function Home() {
               <div className="grid gap-4 md:grid-cols-3">
                 <MetricCard label="Total lines" value={result.total_lines} />
                 <MetricCard label="Flagged" value={result.flagged_count} />
-
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm backdrop-blur">
-                  <div className="text-xs text-slate-400">Filter</div>
+                <div className="rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur-md">
+                  <label className="block text-xs font-medium text-slate-400 mb-3">Filter</label>
                   <select
                     value={reasonFilter}
                     onChange={(e) => setReasonFilter(e.target.value)}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/40 p-2 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-white/10"
+                    className="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
                   >
                     <option value="all">All reasons</option>
                     {reasons.map((r) => (
@@ -246,149 +237,132 @@ export default function Home() {
               </div>
 
               {/* Cleaning rules */}
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm backdrop-blur">
-                <div className="flex flex-col gap-1">
-                  <div className="text-sm font-medium text-slate-200">
-                    Cleaning rules
-                  </div>
-                  <div className="text-xs text-slate-400">
-                    These toggles affect the exported dataset only. Flagged samples
-                    remain visible for review.
-                  </div>
+              <div className="rounded-3xl border border-white/20 bg-white/10 p-8 backdrop-blur-md">
+                <div className="mb-6">
+                  <h2 className="text-sm font-semibold text-white">Cleaning rules</h2>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Toggle categories to exclude from exported dataset
+                  </p>
                 </div>
 
-                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                   {Object.keys(exclude).map((k) => (
                     <label
                       key={k}
                       className={cx(
-                        "flex items-center justify-between rounded-xl border px-4 py-3 transition",
+                        "flex items-center gap-3 rounded-xl border px-4 py-3 transition-all cursor-pointer",
                         exclude[k]
-                          ? "border-white/15 bg-white/10"
-                          : "border-white/10 bg-slate-950/30 hover:bg-slate-950/40"
-                      )}                    >
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-slate-200">{LABELS[k] ?? k}</span>
-                        <span className="text-xs text-slate-400">
-                          {k === "possible_prompt_injection" && "High-risk security pattern"}
-                          {k === "semantic_outlier" && "Embedding distance anomaly"}
-                          {k === "low_quality_text" && "Noise / non-language samples"}
-                          {k === "invalid_json" && "Malformed JSONL row"}
-                          {k === "missing_text" && "Missing instruction/output"}
-                          {k === "duplicate" && "Repeated content"}
-                          {k === "empty_line" && "Blank row"}
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={exclude[k]}
-                          onChange={(e) =>
-                            setExclude((prev) => ({
-                              ...prev,
-                              [k]: e.target.checked,
-                            }))
-                          }
-                          className="h-5 w-5 accent-white"
-                        />
-                        <div className="text-sm text-slate-200"></div>
+                          ? "border-white/30 bg-white/15"
+                          : "border-white/15 bg-white/5 hover:bg-white/10"
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={exclude[k]}
+                        onChange={(e) =>
+                          setExclude((prev) => ({
+                            ...prev,
+                            [k]: e.target.checked,
+                          }))
+                        }
+                        className="h-4 w-4 rounded border-white/30 accent-white"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-white">{LABELS[k] ?? k}</div>
+                        <div className="text-xs text-slate-400">
+                          {k === "possible_prompt_injection" && "Security pattern"}
+                          {k === "semantic_outlier" && "Anomaly"}
+                          {k === "low_quality_text" && "Low quality"}
+                          {k === "invalid_json" && "Malformed"}
+                          {k === "missing_text" && "Incomplete"}
+                          {k === "duplicate" && "Duplicate"}
+                          {k === "empty_line" && "Empty"}
+                        </div>
                       </div>
-
                     </label>
                   ))}
-                </div>
-
-                <div className="mt-3 text-xs text-slate-400">
-                  Export updates instantly based on these selections.
                 </div>
               </div>
 
               {result.flagged_count === 0 && (
-                <div className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-                  No anomalies detected. Your dataset looks clean under the current rule set.
+                <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-6 backdrop-blur-md text-center text-sm text-emerald-100">
+                  No issues detected. Your dataset looks clean.
                 </div>
               )}
 
               {/* Flagged samples table */}
-              <div className="rounded-2xl border border-white/10 bg-white/5 shadow-sm backdrop-blur">
-                <div className="flex flex-col gap-1 px-5 py-4 md:flex-row md:items-center md:justify-between">
-                  <div className="text-sm font-medium text-slate-200">
-                    Flagged samples ({filteredSamples.length})
+              {result.flagged_count > 0 && (
+                <div className="rounded-3xl border border-white/20 bg-white/10 backdrop-blur-md overflow-hidden">
+                  <div className="flex items-center justify-between px-8 py-4 border-b border-white/10">
+                    <h2 className="text-sm font-semibold text-white">
+                      Flagged samples ({filteredSamples.length})
+                    </h2>
+                    <p className="text-xs text-slate-400">Sorted by score</p>
                   </div>
-                  <div className="text-xs text-slate-400">
-                    Sorted by score (highest first). Rule-based flags may have no
-                    score.
+
+                  <div className="max-h-[600px] overflow-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="sticky top-0 bg-white/5 backdrop-blur">
+                        <tr className="border-b border-white/10">
+                          <th className="px-8 py-3 font-semibold text-slate-300 w-16">Line</th>
+                          <th className="px-8 py-3 font-semibold text-slate-300 w-48">Reason</th>
+                          <th className="px-8 py-3 font-semibold text-slate-300 w-24">Severity</th>
+                          <th className="px-8 py-3 font-semibold text-slate-300 w-20">Score</th>
+                          <th className="px-8 py-3 font-semibold text-slate-300">Preview</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {filteredSamples.map((s, idx) => (
+                          <tr
+                            key={`${s.line}-${idx}`}
+                            className="hover:bg-white/5 transition-colors"
+                          >
+                            <td className="px-8 py-3 text-slate-200">{s.line}</td>
+                            <td className="px-8 py-3">
+                              <span
+                                className={cx(
+                                  "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
+                                  REASON_BADGES[s.reason] ??
+                                    "bg-white/10 text-slate-200"
+                                )}
+                              >
+                                {LABELS[s.reason] ?? s.reason}
+                              </span>
+                            </td>
+                            <td className="px-8 py-3">
+                              <span
+                                className={cx(
+                                  "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
+                                  SEVERITY_BADGES[s.severity]
+                                )}
+                              >
+                                {s.severity}
+                              </span>
+                            </td>
+                            <td className="px-8 py-3 text-slate-200 tabular-nums">
+                              {typeof s.score === "number"
+                                ? s.score.toFixed(3)
+                                : "—"}
+                            </td>
+                            <td className="px-8 py-3 text-slate-300 font-mono text-xs max-w-md">
+                              <div className="line-clamp-2 hover:line-clamp-none whitespace-pre-wrap break-words">
+                                {s.preview || "—"}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {filteredSamples.length === 0 && (
+                          <tr>
+                            <td className="px-8 py-6 text-center text-slate-400" colSpan={5}>
+                              No samples match this filter
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-
-                <div className="max-h-[520px] overflow-auto border-t border-white/10">
-                  <table className="w-full text-left text-sm">
-                    <thead className="sticky top-0 bg-slate-950/80 backdrop-blur">
-                      <tr className="text-xs text-slate-400">
-                        <th className="px-5 py-3 w-16">Line</th>
-                        <th className="px-5 py-3 w-56">Reason</th>
-                        <th className="px-5 py-3 w-28">Severity</th>
-                        <th className="px-5 py-3 w-28">Score</th>
-                        <th className="px-5 py-3">Preview</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {filteredSamples.map((s, idx) => (
-                        <tr
-                          key={`${s.line}-${idx}`}
-                          className="border-t border-white/5 hover:bg-white/5"
-                        >
-                          <td className="px-5 py-3 align-top text-slate-200">
-                            {s.line}
-                          </td>
-
-                          <td className="px-5 py-3 align-top">
-                            <span
-                              className={cx(
-                                "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
-                                REASON_BADGES[s.reason] ??
-                                  "bg-white/10 text-slate-200 ring-1 ring-white/10"
-                              )}
-                            >
-                              {LABELS[s.reason] ?? s.reason}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-3 align-top">
-                            <span
-                              className={cx(
-                                "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
-                                SEVERITY_BADGES[s.severity]
-                              )}
-                            >
-                              {s.severity}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-3 align-top text-slate-200 tabular-nums">
-                            {typeof s.score === "number"
-                              ? s.score.toFixed(4)
-                              : "—"}
-                          </td>
-
-                          <td className="px-5 py-3 align-top text-slate-200 font-mono text-[12px] leading-5 whitespace-pre-wrap">
-                            <div className="line-clamp-2 hover:line-clamp-none whitespace-pre-wrap">
-                              {s.preview || "—"}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-
-                      {filteredSamples.length === 0 && (
-                        <tr>
-                          <td className="px-5 py-6 text-slate-300" colSpan={5}>
-                            No samples match this filter.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              )}
             </>
           )}
         </div>
