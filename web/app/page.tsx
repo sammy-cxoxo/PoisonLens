@@ -1,372 +1,246 @@
 "use client";
 
-import { useMemo, useState } from "react";
-
-type FlaggedSample = {
-  line: number;
-  reason: string;
-  severity: "low" | "medium" | "high";
-  preview: string;
-  score?: number;
-};
-
-type ScanResult = {
-  total_lines: number;
-  flagged_count: number;
-  reason_counts: Record<string, number>;
-  flagged_samples: FlaggedSample[];
-  raw_lines: string[];
-  flagged_line_reasons: Record<string, string[]>;
-};
-
-const LABELS: Record<string, string> = {
-  invalid_json: "Invalid JSON",
-  missing_text: "Missing text",
-  possible_prompt_injection: "Possible Prompt Injection",
-  semantic_outlier: "Semantic Outlier",
-  duplicate: "Duplicate",
-  empty_line: "Empty line",
-  low_quality_text: "Low quality text",
-};
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import DarkVeil from "@/components/DarkVeil";
 
 const cx = (...classes: Array<string | false | undefined>) =>
   classes.filter(Boolean).join(" ");
 
-const REASON_BADGES: Record<string, string> = {
-  possible_prompt_injection:
-    "bg-red-500/15 text-red-200 ring-1 ring-red-500/25",
-  invalid_json: "bg-red-500/15 text-red-200 ring-1 ring-red-500/25",
-  missing_text: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/25",
-  low_quality_text: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/25",
-  semantic_outlier: "bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-500/25",
-  duplicate: "bg-slate-500/15 text-slate-200 ring-1 ring-slate-500/25",
-  empty_line: "bg-slate-500/15 text-slate-200 ring-1 ring-slate-500/25",
-};
-
-const SEVERITY_BADGES: Record<string, string> = {
-  high: "bg-red-500/15 text-red-200 ring-1 ring-red-500/25",
-  medium: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/25",
-  low: "bg-slate-500/15 text-slate-200 ring-1 ring-slate-500/25",
-};
-
-function MetricCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur-md hover:bg-white/15 transition-colors">
-      <div className="text-xs font-medium text-slate-400">{label}</div>
-      <div className="mt-3 text-3xl font-bold tracking-tight">{value}</div>
-    </div>
-  );
-}
-
 export default function Home() {
-  const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<ScanResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [reasonFilter, setReasonFilter] = useState<string>("all");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [latchedStep, setLatchedStep] = useState(0);
+  const pinnedSectionRef = useRef<HTMLDivElement>(null);
 
-  const [exclude, setExclude] = useState<Record<string, boolean>>({
-    invalid_json: true,
-    missing_text: true,
-    possible_prompt_injection: true,
-    low_quality_text: true,
-    semantic_outlier: false,
-    duplicate: false,
-    empty_line: false,
-  });
+  useEffect(() => {
+    let ticking = false;
 
-  const reasons = useMemo(() => {
-    if (!result?.reason_counts) return [];
-    return Object.keys(result.reason_counts).sort();
-  }, [result]);
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (!pinnedSectionRef.current) {
+            ticking = false;
+            return;
+          }
 
-  const filteredSamples = useMemo(() => {
-    if (!result) return [];
-    const base =
-      reasonFilter === "all"
-        ? result.flagged_samples
-        : result.flagged_samples.filter((s) => s.reason === reasonFilter);
+          const section = pinnedSectionRef.current;
+          const rect = section.getBoundingClientRect();
+          const sectionHeight = section.offsetHeight;
+          const viewportHeight = window.innerHeight;
 
-    return [...base].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-  }, [result, reasonFilter]);
+          if (rect.top <= 0 && rect.bottom >= viewportHeight) {
+            const progress = Math.abs(rect.top) / (sectionHeight - viewportHeight);
+            setScrollProgress(Math.min(Math.max(progress, 0), 1));
+          } else if (rect.top > 0) {
+            setScrollProgress(0);
+          } else {
+            setScrollProgress(1);
+          }
 
-  async function onScan() {
-    if (!file) return;
-
-    setLoading(true);
-    setResult(null);
-
-    const form = new FormData();
-    form.append("file", file);
-
-    const res = await fetch("http://127.0.0.1:8000/scan", {
-      method: "POST",
-      body: form,
-    });
-
-    const data = (await res.json()) as ScanResult;
-    setResult(data);
-    setReasonFilter("all");
-    setLoading(false);
-  }
-
-  const cleanedJsonl = useMemo(() => {
-    if (!result) return "";
-
-    const shouldDropLine = (lineNum: number) => {
-      const reasons = result.flagged_line_reasons[String(lineNum)] || [];
-      return reasons.some((r) => exclude[r]);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
-    const kept = result.raw_lines.filter((line, idx) => {
-      const lineNum = idx + 1;
-      if (!line.trim()) return false;
-      return !shouldDropLine(lineNum);
-    });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
 
-    return kept.join("\n") + (kept.length ? "\n" : "");
-  }, [result, exclude]);
 
-  function downloadCleaned() {
-    if (!result) return;
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-    const blob = new Blob([cleanedJsonl], { type: "application/jsonl" });
-    const url = URL.createObjectURL(blob);
+  const start = 0.05;   
+  const end   = 0.40;  
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "cleaned.jsonl";
-    a.click();
+  let activeProgress = 0;
 
-    URL.revokeObjectURL(url);
+  if (scrollProgress <= start) {
+    activeProgress = 0;
+  } else if (scrollProgress >= end) {
+    activeProgress = 1;
+  } else {
+    activeProgress = (scrollProgress - start) / (end - start);
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-      {/* Ambient gradient orbs */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="absolute top-1/2 -left-40 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
-      </div>
+  const rawStep = Math.floor(activeProgress * 3);
 
-      <div className="relative mx-auto max-w-6xl px-6 py-12">
-        {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold tracking-tight">PoisonLens</h1>
-          <p className="mt-3 max-w-2xl text-sm text-slate-300">
+  useEffect(() => {
+    setLatchedStep(prev => Math.max(prev, rawStep));
+  }, [rawStep]);
+
+  const step = latchedStep;
+
+  const sectionHeightClass = latchedStep >= 2 ? "h-[120vh]" : "h-[200vh]";
+
+
+  return (
+    <div className="min-h-screen bg-black text-white">
+
+      {/* Sticky Navigation */}
+      <nav className="sticky top-4 z-50 mx-auto max-w-6xl px-6">
+        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl shadow-black/10">
+          <div className="flex items-center justify-between px-6 py-4">
+            {/* Brand */}
+            <Link href="/" className="text-xl font-semibold tracking-tight">
+              <span className="bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">
+                PoisonLens
+              </span>
+            </Link>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-8">
+              <a href="#home" className="text-sm font-medium text-white transition-colors">
+                Home
+              </a>
+              <Link href="/scanner" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                Scanner
+              </Link>
+              <Link href="/contact" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                Contact
+              </Link>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden rounded-lg border border-white/10 bg-white/5 p-2 hover:bg-white/10 transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden border-t border-white/10 px-6 py-4 space-y-3">
+              <a href="#home" className="block text-sm font-medium text-white transition-colors">
+                Home
+              </a>
+              <Link href="/scanner" className="block text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                Scanner
+              </Link>
+              <Link href="/contact" className="block text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                Contact
+              </Link>
+            </div>
+          )}
+        </div>
+      </nav>
+
+      {/* Hero Section with DarkVeil Background */}
+      <div id="home" className="relative h-screen w-screen overflow-hidden flex items-center justify-center bg-black">
+        {/* DarkVeil Background */}
+        <div className="absolute inset-0 z-0">
+          <DarkVeil
+            hueShift={200}
+            noiseIntensity={0}
+            scanlineIntensity={0}
+            speed={0.5}
+            scanlineFrequency={0}
+            warpAmount={0}
+            resolutionScale={0.99}
+          />
+        </div>
+
+        {/* Hero Content */}
+        <div className="relative z-10 mx-auto max-w-6xl px-6 text-center">
+          <h1 className="text-6xl md:text-8xl font-semibold tracking-tight bg-gradient-to-br from-white via-blue-100 to-slate-300 bg-clip-text text-transparent">
+            Clean Your Data
+          </h1>
+          <p className="mt-8 max-w-2xl mx-auto text-xl text-slate-300">
             Scan JSONL datasets for quality issues, anomalies, and security risks.
             Clean and export your data with intelligent remediation rules.
           </p>
+          <div className="mt-12">
+            <Link
+              href="/scanner"
+              className="inline-flex items-center gap-2 rounded-lg px-8 py-4 text-base font-medium bg-white/10 text-white hover:bg-white/15 border border-white/20 shadow-lg shadow-white/5 transition-all duration-300"
+            >
+              Get Started
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+          </div>
         </div>
 
-        {/* Main content */}
-        <div className="space-y-6">
-          {/* Upload section */}
-          <div className="rounded-3xl border border-white/20 bg-white/10 p-8 backdrop-blur-md">
-            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <div className="flex-1">
-                <label className="block text-sm font-semibold text-white mb-3">Dataset</label>
-                <input
-                  type="file"
-                  accept=".jsonl,.txt,.json"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                  className="block w-full text-sm text-slate-200 file:mr-4 file:rounded-xl file:border-0 file:bg-white/20 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-white/30 transition-colors file:cursor-pointer"
-                />
-                <p className="mt-2 text-xs text-slate-400">
-                  Upload a JSONL file to begin scanning
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={onScan}
-                  disabled={!file || loading}
-                  className={cx(
-                    "rounded-xl px-6 py-2.5 text-sm font-semibold transition-all",
-                    !file || loading
-                      ? "bg-white/10 text-slate-400 cursor-not-allowed"
-                      : "bg-white/20 text-white hover:bg-white/30 border border-white/20"
-                  )}
-                >
-                  {loading ? "Scanning…" : "Scan"}
-                </button>
-
-                <button
-                  onClick={downloadCleaned}
-                  disabled={!result}
-                  className={cx(
-                    "rounded-xl px-6 py-2.5 text-sm font-semibold transition-all border",
-                    !result
-                      ? "border-white/10 bg-white/5 text-slate-400 cursor-not-allowed"
-                      : "border-white/20 bg-white/10 text-white hover:bg-white/20"
-                  )}
-                >
-                  Download
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Empty state */}
-          {!result && (
-            <div className="rounded-3xl border border-white/20 bg-white/10 p-12 text-center backdrop-blur-md">
-              <p className="text-slate-300">Upload and scan a dataset to begin</p>
-            </div>
-          )}
-
-          {/* Dashboard */}
-          {result && (
-            <>
-              <div className="grid gap-4 md:grid-cols-3">
-                <MetricCard label="Total lines" value={result.total_lines} />
-                <MetricCard label="Flagged" value={result.flagged_count} />
-                <div className="rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur-md">
-                  <label className="block text-xs font-medium text-slate-400 mb-3">Filter</label>
-                  <select
-                    value={reasonFilter}
-                    onChange={(e) => setReasonFilter(e.target.value)}
-                    className="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
-                  >
-                    <option value="all">All reasons</option>
-                    {reasons.map((r) => (
-                      <option key={r} value={r}>
-                        {LABELS[r] ?? r} ({result.reason_counts[r]})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Cleaning rules */}
-              <div className="rounded-3xl border border-white/20 bg-white/10 p-8 backdrop-blur-md">
-                <div className="mb-6">
-                  <h2 className="text-sm font-semibold text-white">Cleaning rules</h2>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Toggle categories to exclude from exported dataset
-                  </p>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {Object.keys(exclude).map((k) => (
-                    <label
-                      key={k}
-                      className={cx(
-                        "flex items-center gap-3 rounded-xl border px-4 py-3 transition-all cursor-pointer",
-                        exclude[k]
-                          ? "border-white/30 bg-white/15"
-                          : "border-white/15 bg-white/5 hover:bg-white/10"
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={exclude[k]}
-                        onChange={(e) =>
-                          setExclude((prev) => ({
-                            ...prev,
-                            [k]: e.target.checked,
-                          }))
-                        }
-                        className="h-4 w-4 rounded border-white/30 accent-white"
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-white">{LABELS[k] ?? k}</div>
-                        <div className="text-xs text-slate-400">
-                          {k === "possible_prompt_injection" && "Security pattern"}
-                          {k === "semantic_outlier" && "Anomaly"}
-                          {k === "low_quality_text" && "Low quality"}
-                          {k === "invalid_json" && "Malformed"}
-                          {k === "missing_text" && "Incomplete"}
-                          {k === "duplicate" && "Duplicate"}
-                          {k === "empty_line" && "Empty"}
-                        </div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {result.flagged_count === 0 && (
-                <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-6 backdrop-blur-md text-center text-sm text-emerald-100">
-                  No issues detected. Your dataset looks clean.
-                </div>
-              )}
-
-              {/* Flagged samples table */}
-              {result.flagged_count > 0 && (
-                <div className="rounded-3xl border border-white/20 bg-white/10 backdrop-blur-md overflow-hidden">
-                  <div className="flex items-center justify-between px-8 py-4 border-b border-white/10">
-                    <h2 className="text-sm font-semibold text-white">
-                      Flagged samples ({filteredSamples.length})
-                    </h2>
-                    <p className="text-xs text-slate-400">Sorted by score</p>
-                  </div>
-
-                  <div className="max-h-[600px] overflow-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead className="sticky top-0 bg-white/5 backdrop-blur">
-                        <tr className="border-b border-white/10">
-                          <th className="px-8 py-3 font-semibold text-slate-300 w-16">Line</th>
-                          <th className="px-8 py-3 font-semibold text-slate-300 w-48">Reason</th>
-                          <th className="px-8 py-3 font-semibold text-slate-300 w-24">Severity</th>
-                          <th className="px-8 py-3 font-semibold text-slate-300 w-20">Score</th>
-                          <th className="px-8 py-3 font-semibold text-slate-300">Preview</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5">
-                        {filteredSamples.map((s, idx) => (
-                          <tr
-                            key={`${s.line}-${idx}`}
-                            className="hover:bg-white/5 transition-colors"
-                          >
-                            <td className="px-8 py-3 text-slate-200">{s.line}</td>
-                            <td className="px-8 py-3">
-                              <span
-                                className={cx(
-                                  "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
-                                  REASON_BADGES[s.reason] ??
-                                    "bg-white/10 text-slate-200"
-                                )}
-                              >
-                                {LABELS[s.reason] ?? s.reason}
-                              </span>
-                            </td>
-                            <td className="px-8 py-3">
-                              <span
-                                className={cx(
-                                  "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
-                                  SEVERITY_BADGES[s.severity]
-                                )}
-                              >
-                                {s.severity}
-                              </span>
-                            </td>
-                            <td className="px-8 py-3 text-slate-200 tabular-nums">
-                              {typeof s.score === "number"
-                                ? s.score.toFixed(3)
-                                : "—"}
-                            </td>
-                            <td className="px-8 py-3 text-slate-300 font-mono text-xs max-w-md">
-                              <div className="line-clamp-2 hover:line-clamp-none whitespace-pre-wrap break-words">
-                                {s.preview || "—"}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                        {filteredSamples.length === 0 && (
-                          <tr>
-                            <td className="px-8 py-6 text-center text-slate-400" colSpan={5}>
-                              No samples match this filter
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 animate-bounce">
+          <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
         </div>
       </div>
+
+      {/* Scroll-Driven Pinned Section - "How It Works" */}
+      <div ref={pinnedSectionRef}   className={cx("relative transition-all duration-500 ease-out", sectionHeightClass)}>
+        <div className="sticky top-32 mx-auto max-w-6xl px-6 py-24">
+          <h2 className="text-4xl font-semibold text-center mb-16 bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">
+            How It Works
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Card 1 */}
+            <div
+              className={cx(
+                "rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-white/5 p-8 backdrop-blur-xl shadow-2xl shadow-blue-500/10 transition-all duration-700",
+                step >= 0 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              )}
+            >
+              <div className="text-4xl mb-4">🔍</div>
+              <h3 className="text-2xl font-semibold mb-4 bg-gradient-to-br from-white to-blue-200 bg-clip-text text-transparent">
+                Test Your Data
+              </h3>
+              <p className="text-slate-300 leading-relaxed">
+                Upload your JSONL dataset and let our advanced algorithms scan every line for quality issues,
+                security vulnerabilities, and anomalies. Get comprehensive insights in seconds.
+              </p>
+            </div>
+
+            {/* Card 2 */}
+            <div
+              className={cx(
+                "rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-white/5 p-8 backdrop-blur-xl shadow-2xl shadow-indigo-500/10 transition-all duration-700 delay-150",
+                step >= 1 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              )}
+            >
+              <div className="text-4xl mb-4">📋</div>
+              <h3 className="text-2xl font-semibold mb-4 bg-gradient-to-br from-white to-indigo-200 bg-clip-text text-transparent">
+                An Actionable Plan
+              </h3>
+              <p className="text-slate-300 leading-relaxed">
+                Review detailed flagged samples with severity ratings, confidence scores, and preview snippets.
+                Configure intelligent cleaning rules to exclude unwanted categories automatically.
+              </p>
+            </div>
+
+            {/* Card 3 */}
+            <div
+              className={cx(
+                "rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-white/5 p-8 backdrop-blur-xl shadow-2xl shadow-cyan-500/10 transition-all duration-700 delay-300",
+                step >= 2 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              )}
+            >
+              <div className="text-4xl mb-4">🔗</div>
+              <h3 className="text-2xl font-semibold mb-4 bg-gradient-to-br from-white to-cyan-200 bg-clip-text text-transparent">
+                A Connected Ecosystem
+              </h3>
+              <p className="text-slate-300 leading-relaxed">
+                Export your cleaned dataset with one click, ready for training or production.
+                Integrate seamlessly with your ML pipeline and maintain data quality standards effortlessly.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
