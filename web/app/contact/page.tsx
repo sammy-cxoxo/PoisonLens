@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import DarkVeil from "@/components/DarkVeil";
+import Orb from "@/components/Orb";
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -35,14 +35,12 @@ export default function Contact() {
     <div className="min-h-screen bg-black text-white">
       {/* Background */}
       <div className="fixed inset-0 z-0">
-        <DarkVeil
-          hueShift={200}
-          noiseIntensity={0}
-          scanlineIntensity={0}
-          speed={.5}
-          scanlineFrequency={0}
-          warpAmount={0}
-          resolutionScale={0.99}
+        <Orb
+          hoverIntensity={0.74}
+          rotateOnHover
+          hue={141}
+          forceHoverState={false}
+          backgroundColor="#000000"
         />
       </div>
 

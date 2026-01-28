@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import DarkVeil from "@/components/DarkVeil";
+import Orb from "@/components/Orb";
 
 type FlaggedSample = {
   line: number;
@@ -144,16 +144,14 @@ export default function Scanner() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* DarkVeil Background */}
+      {/* Orb Background */}
       <div className="fixed inset-0 z-0">
-        <DarkVeil
-          hueShift={200}
-          noiseIntensity={0}
-          scanlineIntensity={0}
-          speed={1}
-          scanlineFrequency={0}
-          warpAmount={0}
-          resolutionScale={0.99}
+        <Orb
+          hoverIntensity={0.74}
+          rotateOnHover
+          hue={141}
+          forceHoverState={false}
+          backgroundColor="#000000"
         />
       </div>
 
@@ -172,8 +170,7 @@ export default function Scanner() {
             PoisonLens Scanner
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-slate-300">
-            Scan JSONL datasets for quality issues, anomalies, and security risks.
-            Clean and export your data with intelligent remediation rules.
+            Scan, clean and export you JSONL datasets to remove potential data poisoning threats.
           </p>
         </div>
 
